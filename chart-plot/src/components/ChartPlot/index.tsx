@@ -2,42 +2,45 @@ import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
 import { ChartData } from "chart.js";
 import style from "./style";
-import { IEvent, IEventState } from "../../types";
-import { EventsToChartData } from "../../consts";
-import { useSelector } from "react-redux";
+import { IEventState, IDataValue, IPreSetColors } from "../../types";
+import { DataValuesToChartData, ChartPlotOptions, Types } from "../../consts";
+import { useSelector, useDispatch } from "react-redux";
 
 interface Props {
   limit?: number;
 }
 
 const ChartPlot: React.FC<Props> = (props) => {
-  const [limit, setLimit] = useState(props.limit || 200);
-  const [data, setData] = useState<ChartData>({});
-  const eventList = useSelector<IEventState, IEvent[]>(({ events }) => events);
+  const dispatch = useDispatch();
 
+  const [data, setData] = useState<ChartData>({});
+  const dataValues = useSelector<IEventState, IDataValue>(
+    ({ dataValues }) => dataValues
+  );
+  const presetColors = useSelector<IEventState, IPreSetColors>(
+    ({ presetColors }) => presetColors
+  );
+  const dataRangeSize = useSelector<IEventState, number>(
+    ({ dataRangeSize }) => dataRangeSize
+  );
   useEffect(() => {
-    setData(EventsToChartData(eventList));
+    let [datasets, _newPresetColors] = DataValuesToChartData(
+      dataValues,
+      presetColors
+    );
+    setData({ datasets: datasets });
+    if (_newPresetColors !== presetColors) {
+      dispatch({
+        type: Types.UPDATE_PRESET_COLORS,
+        payload: _newPresetColors,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventList]);
+  }, [dataValues, dataRangeSize]);
 
   return (
     <div data-testid="chart-canvas" style={style}>
-      <Line
-        data={data}
-        options={{
-          legend: { position: "right" },
-          maintainAspectRatio: false,
-          scales: {
-            xAxes: [{
-                type: 'time',
-                distribution: 'series',
-                time: {
-                  unit:'hour',
-                }
-            }]
-        }
-        }}
-      />
+      <Line data={data} options={ChartPlotOptions} />
     </div>
   );
 };

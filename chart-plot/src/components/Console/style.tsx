@@ -2,7 +2,7 @@ import { CSSProperties } from "react";
 
 const style: CSSProperties = {
   width: "100%",
-  backgroundColor: "#000",
+  backgroundColor: "#202",
   color: "#FFF",
   fontFamily: "Sourcer Code Pro, sans-serif",
   fontWeight:400,

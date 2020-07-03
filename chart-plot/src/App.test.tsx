@@ -5,13 +5,29 @@ import { IAction, IEventState } from "./types";
 import { Provider } from "react-redux";
 import { act } from "react-dom/test-utils";
 import { render, fireEvent } from "@testing-library/react";
-import { EventsToDataset, EventsToChartData } from "./consts";
+import {
+  EventsToDataValues,
+  DataValuesToChartData,
+  generalDatasetConfig,
+  updateDataValue,
+  Types,
+} from "./consts";
 import ChartPlot from "./components/ChartPlot";
 import Footer from "./components/Footer";
 import Console from "./components/Console";
 
 const INITIAL_STATE: IEventState = {
-  events: [],
+  limit: 10,
+  dataRangeSize: 10,
+  updateTimeRate: 10,
+  dataStepSize: 1,
+  showLastFirst: true,
+  liveMode: false,
+  minTime: undefined,
+  maxTime: undefined,
+  dataValues: {},
+  queue: [],
+  presetColors: {},
   console: "",
 };
 
@@ -47,48 +63,54 @@ describe("Testing Components", () => {
     expect(store.getState().console).toEqual(eventListText.trim());
   });
 
-  it("Should parse Array text to Array of events", async() => {
-    let getByTestId = setUp();
-    let btn = getByTestId("generate-btn");
-    let textArea = getByTestId("console-textarea");
-
-    fireEvent.change(textArea, { target: { value: eventListArrayFormat } });
-    await act(async () => {
-      await fireEvent.click(btn);
-    });
-
-    expect(store.getState().events).toEqual(eventListResponse);
-  });
-
-  it("Should get Redux State console and parse to Array of events then add in Redux State events", async () => {
+  it("Should convert Event list text to DataValue object", async () => {
     let getByTestId = setUp();
     let textArea = getByTestId("console-textarea");
     let btn = getByTestId("generate-btn");
+
     fireEvent.change(textArea, { target: { value: eventListText } });
     await act(async () => {
       await fireEvent.click(btn);
     });
 
-    expect(store.getState().events).toEqual(eventListResponse);
+    let { dataValues } = store.getState();
+    expect(dataValues).toEqual(dataValueList);
+  });
+
+  it("Should convert alternative Event list text to DataValue object", async () => {
+    let getByTestId = setUp();
+    let btn = getByTestId("generate-btn");
+    let textArea = getByTestId("console-textarea");
+    let { dataValues } = store.getState();
+    fireEvent.change(textArea, { target: { value: eventListArrayFormat } });
+
+    await act(async () => {
+      await fireEvent.click(btn);
+    });
+
+    expect(dataValues).toEqual(dataValueList);
   });
 });
 
 describe("Testing Functions", () => {
-  it("Should parse event list to a list of Dataset Object and step names", () => {
-    let _dataset = EventsToDataset(store.getState().events);
-    expect(_dataset).toEqual(datasetListResponse);
+  it("[EventsToDataValues]=>Should convert event list to DataValue object", () => {
+    let _dataset = EventsToDataValues(eventListResponse);
+
+    expect(_dataset.datasetList).toEqual(dataValueList);
   });
 
-  it("Should parse event list to a Object to a ChartData object", () => {
-    let ChartDataObject = EventsToChartData(
-      store.getState().events,
-      200,
+  it("[DataValuesToChartData]=>Should convert event list to a ChartData object and presetColor Object", () => {
+    let [datasets, _presetColors] = DataValuesToChartData(
+      dataValueList,
       preSetColors
     );
+    let ChartDataObject = {
+      datasets,
+    };
     expect(ChartDataObject).toEqual(chartDataObjectResponse);
+    expect(_presetColors).toEqual(preSetColors);
   });
 });
-
 
 const eventListText = `
   { type: "start", timestamp: 1519862400000, select: ["min_response_time", "max_response_time"], group: ["os", "browser"] }
@@ -183,7 +205,6 @@ const eventListArrayFormat = `[
   { type: "stop", timestamp: 1619862460000 },
 ]`;
 
-
 const eventListResponse = [
   {
     type: "start",
@@ -263,210 +284,129 @@ const eventListResponse = [
   },
   { type: "stop", timestamp: 1619862460000 },
 ];
-const datasetListResponse = {
-  'linux chrome min time': [
+const dataValueList = {
+  "linux chrome min time": [
     { y: 0.1, x: new Date(1519862400000) },
-    { y: 0.2, x: new Date(1519862460000) }
+    { y: 0.2, x: new Date(1519862460000) },
   ],
-  'linux chrome max time': [
+  "linux chrome max time": [
     { y: 1.3, x: new Date(1519862400000) },
-    { y: 0.9, x: new Date(1519862460000) }
+    { y: 0.9, x: new Date(1519862460000) },
   ],
-  'mac chrome min time': [
+  "mac chrome min time": [
     { y: 0.2, x: new Date(1519862400000) },
-    { y: 0.1, x: new Date(1519862460000) }
+    { y: 0.1, x: new Date(1519862460000) },
   ],
-  'mac chrome max time': [
+  "mac chrome max time": [
     { y: 1.2, x: new Date(1519862400000) },
-    { y: 1, x: new Date(1519862460000) }
+    { y: 1, x: new Date(1519862460000) },
   ],
-  'mac firefox min time': [
+  "mac firefox min time": [
     { y: 0.3, x: new Date(1519862400000) },
-    { y: 0.2, x: new Date(1519862460000) }
+    { y: 0.2, x: new Date(1519862460000) },
   ],
-  'mac firefox max time': [
+  "mac firefox max time": [
     { y: 1.2, x: new Date(1519862400000) },
-    { y: 1.1, x: new Date(1519862460000) }
+    { y: 1.1, x: new Date(1519862460000) },
   ],
-  'linux firefox min time': [
+  "linux firefox min time": [
     { y: 0.1, x: new Date(1519862400000) },
-    { y: 0.3, x: new Date(1519862460000) }
+    { y: 0.3, x: new Date(1519862460000) },
   ],
-  'linux firefox max time': [
+  "linux firefox max time": [
     { y: 1, x: new Date(1519862400000) },
-    { y: 1.4, x: new Date(1519862460000) }
-  ]
-}
+    { y: 1.4, x: new Date(1519862460000) },
+  ],
+};
 const chartDataObjectResponse = {
-  
   datasets: [
     {
       label: "linux chrome min time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(50,180,116,1)",
       borderColor: "rgba(102,35,242,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(102,35,242,1)",
       pointBackgroundColor: "rgba(102,35,242,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(102,35,242,0.5)",
       pointHoverBorderColor: "rgba(102,35,242,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['linux chrome min time'],
+      ...generalDatasetConfig,
+      data: dataValueList["linux chrome min time"],
     },
     {
       label: "linux chrome max time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(55,41,224,1)",
       borderColor: "rgba(178,38,160,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(178,38,160,1)",
       pointBackgroundColor: "rgba(178,38,160,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(178,38,160,0.5)",
       pointHoverBorderColor: "rgba(178,38,160,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['linux chrome max time'],
+      ...generalDatasetConfig,
+      data: dataValueList["linux chrome max time"],
     },
     {
       label: "mac chrome min time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(186,15,221,1)",
       borderColor: "rgba(230,41,181,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(230,41,181,1)",
       pointBackgroundColor: "rgba(230,41,181,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(230,41,181,0.5)",
       pointHoverBorderColor: "rgba(230,41,181,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['mac chrome min time'],
+      ...generalDatasetConfig,
+      data: dataValueList["mac chrome min time"],
     },
     {
       label: "mac chrome max time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(251,144,147,1)",
       borderColor: "rgba(70,168,166,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(70,168,166,1)",
       pointBackgroundColor: "rgba(70,168,166,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(70,168,166,0.5)",
       pointHoverBorderColor: "rgba(70,168,166,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['mac chrome max time'],
+      ...generalDatasetConfig,
+      data: dataValueList["mac chrome max time"],
     },
     {
       label: "mac firefox min time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(54,96,28,1)",
       borderColor: "rgba(42,167,165,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(42,167,165,1)",
       pointBackgroundColor: "rgba(42,167,165,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(42,167,165,0.5)",
       pointHoverBorderColor: "rgba(42,167,165,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['mac firefox min time'],
+      ...generalDatasetConfig,
+      data: dataValueList["mac firefox min time"],
     },
     {
       label: "mac firefox max time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(58,30,42,1)",
       borderColor: "rgba(1,134,74,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(1,134,74,1)",
       pointBackgroundColor: "rgba(1,134,74,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(1,134,74,0.5)",
       pointHoverBorderColor: "rgba(1,134,74,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['mac firefox max time'],
+      ...generalDatasetConfig,
+      data: dataValueList["mac firefox max time"],
     },
     {
       label: "linux firefox min time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(214,172,125,1)",
       borderColor: "rgba(77,211,191,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(77,211,191,1)",
       pointBackgroundColor: "rgba(77,211,191,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(77,211,191,0.5)",
       pointHoverBorderColor: "rgba(77,211,191,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['linux firefox min time'],
+      ...generalDatasetConfig,
+      data: dataValueList["linux firefox min time"],
     },
     {
       label: "linux firefox max time",
-      fill: false,
-      lineTension: 0.1,
       backgroundColor: "rgba(29,239,1,1)",
       borderColor: "rgba(253,182,100,1)",
-      borderCapStyle: "butt",
-      borderDash: [],
-      borderDashOffset: 0,
-      borderJoinStyle: "miter",
       pointBorderColor: "rgba(253,182,100,1)",
       pointBackgroundColor: "rgba(253,182,100,1)",
-      pointBorderWidth: 1,
-      pointHoverRadius: 5,
       pointHoverBackgroundColor: "rgba(253,182,100,0.5)",
       pointHoverBorderColor: "rgba(253,182,100,0.5)",
-      pointHoverBorderWidth: 2,
-      pointRadius: 3,
-      pointHitRadius: 10,
-      data:datasetListResponse['linux firefox max time'],
+      ...generalDatasetConfig,
+      data: dataValueList["linux firefox max time"],
     },
   ],
 };

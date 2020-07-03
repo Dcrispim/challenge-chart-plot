@@ -20,11 +20,24 @@ export interface IPreSetColors {
     _hoverColor: string;
   };
 }
+
+export interface IDataValue {
+  [k: string]: {
+    y: string | number;
+    x: Date;
+  }[];
+}
+
 export interface IEventState {
-  events: IEvent[];
   console: string;
-  queue:IEvent[];
-  limit:number
+  queue: IEvent[];
+  dataValues: IDataValue;
+  limit: number;
+  dataRangeSize: number;
+  updateTimeRate: number;
+  showLastFirst: boolean;
+  dataStepSize:number;
+  presetColors:IPreSetColors;
   [k: string]: any;
 }
 export interface IAction {

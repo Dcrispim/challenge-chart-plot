@@ -5,7 +5,7 @@ const style:CSSProperties={
     paddingTop:30,
     width:"auto",
     minWidth:450,
-    maxHeight:450,
+    maxHeight:'40vh',
     overflow:'hidden',
     alignItems:'center',
     

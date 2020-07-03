@@ -1,44 +1,74 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Chart-Plot chalange
 
-## Available Scripts
+## 1 General
 
-In the project directory, you can run:
+The project has made with React using Typescript to make manteance more easy. For the State management the Redux was chosen.
 
-### `npm start`
+```typescript
+State:IEventState = {
+  console: '',
+  queue: [],
+  dataValues: {},
+  limit: 500,
+  dataStepSize:50,
+  dataRangeSize: 100,
+  updateTimeRate: 10000,
+  showLastFirst: true,
+  presetColors:{},
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+}
+```
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+All custom Types are in the `types.ts` file.
 
-### `npm test`
+For make the components more cleaner, the most functions are in `consts.ts` file
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 2 Components
 
-### `npm run build`
+This project is made with four main components: `<Console/>` `<ChartPlot/>` `<Footer/>` `<UserInterface>`
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 2.1 Console
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+Where the text of the events is inserted.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Initially, the monaco-editor library was chosen, but the type of use does not justify the complexity of the component. So `<textarea>` was chosen. It saves the text in `State.console`
 
-### `npm run eject`
+### 2.2 Footer
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Where the `State.console` is converted to `IEvent[]` using `StringToObj()`, ordered by *timestemp* and then converted to `IDataValue` using `EventsToDatavalues()` ,to be save it on `State.dataValues`, or if the number of events was bigger than `State.limit` the surplus `IEvent[]` is placed on `State.queue`
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 2.3 ChartPlot
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+`react-chartjs-2` was chosen to make the chartPlot because it is simple and has a good design. The component converts the `State.Datavalues` to `ChartData` using `DataValuesToChartData()`
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+#### 2.3.1 Labels
 
-## Learn More
+The labels are made with the `select` and `group` properties of the **span event** using `createLabels()`
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+#### 2.3.2 Cores
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+All labels are given random colors that are not duplicated when datasets are created, but an object `IPreSetColors` can be optional provided with custom colors
+
+### 2.4 UserInterface
+
+To make resizeble components was used `react-resize-panel`, but t are not typescript componente sou the **UserInterface** was created to encapsulate the `.jsx` components
+
+## 3 Processamento de dados
+
+The control of amount data  is made by the variables below
+
+1. `State.limit: number`
+2. `State.dataRangeSize:number`
+3. `State.updateTimeRate:number`
+4. `State.dataStepSize:number`
+5. `State.showLastFirst:boolean`
+
+**State.limit**: Show the maximum number of events to be plotted
+
+**State.dataRangeSize**: Show the number of events currently plotted. Increases with each update up to the `limit`
+**State.updateTimeRate:** The time(miliseconds) between each *State.dataRangeSize* update.
+
+**State.dataStepSize:** Number of events will be inserted with each update
+**State.showLastFirst:** Define if de lasts events will be plotted first
+
+When the number of events exceeds the limit, all excess is saved in `State.queue` and with each update some `IEvent` are removed from `queue` converted in `IDataValue` using `EventsToDataValue()` and added in `State.dataValues`.
