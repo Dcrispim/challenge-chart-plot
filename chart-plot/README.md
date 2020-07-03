@@ -53,7 +53,7 @@ All labels are given random colors that are not duplicated when datasets are cre
 
 To make resizeble components was used `react-resize-panel`, but t are not typescript componente sou the **UserInterface** was created to encapsulate the `.jsx` components
 
-## 3 Processamento de dados
+## 3 Data processing
 
 The control of amount data  is made by the variables below
 
